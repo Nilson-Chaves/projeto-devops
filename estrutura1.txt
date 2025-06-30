@@ -27,11 +27,7 @@
 ├── disk2.vdi
 ├── disk3.vdi
 ├── estrutura1.txt
-├── estrutura.txt
-├── playbooks
-├── projeto-devops-final.zip
 ├── README4.md
-├── README.md
 └── Vagrantfile
 
 10 directories, 25 files
