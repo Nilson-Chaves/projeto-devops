@@ -1,0 +1,88 @@
+---
+- name: Configuração segura do SSH
+  hosts: all
+  become: true
+
+  vars:
+    usuarios:
+      - nilson
+      - wellington
+    grupos_permitidos: ["vagrant", "ifpb"]
+    banner_ssh: |
+      Acesso apenas para pessoas com autorização expressa.
+      Seu acesso está sendo monitorado !!!
+
+  tasks:
+
+    - name: Garantir que o openssh-server está instalado
+      apt:
+        name: openssh-server
+        state: present
+
+    - name: Bloquear login do root via SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin no'
+        state: present
+
+    - name: Permitir somente autenticação por chave pública
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        state: present
+
+    - name: Restringir acesso SSH aos grupos permitidos
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?AllowGroups'
+        line: "AllowGroups {{ grupos_permitidos | join(' ') }}"
+        state: present
+
+    - name: Ativar banner de aviso
+      copy:
+        content: "{{ banner_ssh }}"
+        dest: /etc/issue.net
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Configurar banner no SSHD
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?Banner'
+        line: 'Banner /etc/issue.net'
+        state: present
+
+    - name: Garantir diretório .ssh para cada usuário
+      file:
+        path: "/home/{{ item }}/.ssh"
+        state: directory
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        mode: '0700'
+      loop: "{{ usuarios }}"
+
+    - name: Gerar chave SSH para cada usuário (se não existir)
+      command: "ssh-keygen -t rsa -b 2048 -f /home/{{ item }}/.ssh/id_rsa -q -N ''"
+      args:
+        creates: "/home/{{ item }}/.ssh/id_rsa"
+      loop: "{{ usuarios }}"
+
+    - name: Copiar chave pública para authorized_keys
+      ansible.builtin.copy:
+        src: "/home/{{ item }}/.ssh/id_rsa.pub"
+        dest: "/home/{{ item }}/.ssh/authorized_keys"
+        owner: "{{ item }}"
+        group: "{{ item }}"
+        mode: '0600'
+        remote_src: yes
+      loop: "{{ usuarios }}"
+
+
+    - name: Reiniciar o serviço SSH
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+

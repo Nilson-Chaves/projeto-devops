@@ -1,0 +1,44 @@
+---
+- name: Configurar autofs no cliente (cli)
+  hosts: cli
+  become: true
+
+  vars:
+    nfs_server: 192.168.56.31  # IP do servidor arq
+    nfs_share: /dados/nfs
+    mount_point: /var/nfs
+
+  tasks:
+    - name: Instalar o autofs
+      apt:
+        name: autofs
+        state: present
+        update_cache: yes
+
+    - name: Criar diretório de montagem
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Configurar auto.master
+      lineinfile:
+        path: /etc/auto.master
+        regexp: '^/var/nfs'
+        line: "/var/nfs /etc/auto.nfs --timeout=60"
+        state: present
+
+    - name: Criar arquivo /etc/auto.nfs
+      copy:
+        dest: /etc/auto.nfs
+        content: |
+          * -rw,sync {{ nfs_server }}:{{ nfs_share }}/&
+
+    - name: Reiniciar o autofs
+      service:
+        name: autofs
+        state: restarted
+        enabled: yes
+

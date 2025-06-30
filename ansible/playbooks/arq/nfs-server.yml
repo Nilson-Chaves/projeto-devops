@@ -1,0 +1,60 @@
+---
+- name: Configurar servidor NFS no arq
+  hosts: arq
+  become: true
+
+  vars:
+    export_dir: /dados/nfs
+    nfs_user: nfs-ifpb
+    network_range: 192.168.56.0/24
+
+  tasks:
+
+    - name: Instalar servidor NFS
+      apt:
+        name: nfs-kernel-server
+        state: present
+        update_cache: yes
+
+    - name: Criar usuário nfs-ifpb sem shell
+      user:
+        name: "{{ nfs_user }}"
+        shell: /usr/sbin/nologin
+        system: yes
+        create_home: no
+
+    - name: Criar diretório exportado
+      file:
+        path: "{{ export_dir }}"
+        state: directory
+        owner: "{{ nfs_user }}"
+        group: "{{ nfs_user }}"
+        mode: '0750'
+
+    - name: Obter UID do usuário nfs-ifpb
+      command: id -u {{ nfs_user }}
+      register: nfs_uid
+      changed_when: false
+
+    - name: Obter GID do usuário nfs-ifpb
+      command: id -g {{ nfs_user }}
+      register: nfs_gid
+      changed_when: false
+
+    - name: Configurar /etc/exports
+      lineinfile:
+        path: /etc/exports
+        line: "{{ export_dir }} {{ network_range }}(rw,sync,no_subtree_check,all_squash,anonuid={{ nfs_uid.stdout }},anongid={{ nfs_gid.stdout }})"
+        state: present
+        create: yes
+        backup: yes
+
+    - name: Atualizar exportações NFS
+      command: exportfs -ra
+
+    - name: Garantir que o NFS está ativo e habilitado
+      service:
+        name: nfs-server
+        state: restarted
+        enabled: yes
+

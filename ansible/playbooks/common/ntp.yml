@@ -1,0 +1,34 @@
+---
+- name: Configuração do serviço NTP com chrony
+  hosts: all
+  become: true
+
+  vars:
+    timezone: America/Recife
+    ntp_server: pool.ntp.br
+
+  tasks:
+    - name: Instalar o pacote chrony
+      apt:
+        name: chrony
+        state: present
+        update_cache: yes
+
+    - name: Definir timezone para America/Recife
+      timezone:
+        name: "{{ timezone }}"
+
+    - name: Substituir servidores NTP pelo pool.ntp.br
+      lineinfile:
+        path: /etc/chrony/chrony.conf
+        regexp: '^pool '
+        line: "pool {{ ntp_server }} iburst"
+        state: present
+        backup: yes
+
+    - name: Garantir que o serviço chrony está ativo e habilitado
+      service:
+        name: chrony
+        state: restarted
+        enabled: yes
+

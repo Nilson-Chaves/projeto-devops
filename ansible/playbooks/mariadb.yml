@@ -1,0 +1,27 @@
+---
+- name: Instalar e configurar o MariaDB
+  hosts: db
+  become: true
+
+  tasks:
+    - name: Instalar MariaDB
+      apt:
+        name: mariadb-server
+        state: present
+        update_cache: true
+
+    - name: Iniciar e habilitar MariaDB
+      systemd:
+        name: mariadb
+        enabled: true
+        state: started
+
+    - name: Garantir que a porta 3306 está escutando
+      shell: ss -tuln | grep ':3306'
+      register: mariadb_port
+      changed_when: false
+
+    - name: Mostrar saída da checagem da porta
+      debug:
+        var: mariadb_port.stdout
+

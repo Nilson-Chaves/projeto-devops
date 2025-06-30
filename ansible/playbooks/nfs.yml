@@ -1,0 +1,31 @@
+# playbooks/nfs.yml
+- name: Configurar servidor NFS
+  hosts: arq
+  become: yes
+  tasks:
+    - name: Instalar pacote NFS
+      apt:
+        name: nfs-kernel-server
+        state: present
+        update_cache: yes
+
+    - name: Criar diretório para exportação NFS
+      file:
+        path: /dados/nfs
+        state: directory
+        owner: nobody
+        group: nogroup
+        mode: '0777'
+
+    - name: Adicionar entrada no /etc/exports
+      lineinfile:
+        path: /etc/exports
+        line: "/dados/nfs 192.168.56.0/24(rw,sync,no_subtree_check,all_squash,anonuid=996,anongid=994)"
+        create: yes
+
+    - name: Reiniciar NFS
+      service:
+        name: nfs-server
+        state: restarted
+        enabled: yes
+

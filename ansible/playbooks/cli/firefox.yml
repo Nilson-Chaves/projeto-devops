@@ -1,0 +1,29 @@
+---
+- name: Instalar Firefox e configurar X11 forwarding no cli
+  hosts: cli
+  become: true
+
+  tasks:
+
+    - name: Instalar Firefox e xauth
+      apt:
+        name:
+          - firefox-esr
+          - xauth
+        state: present
+        update_cache: yes
+
+    - name: Ativar X11 forwarding no SSH
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?X11Forwarding'
+        line: 'X11Forwarding yes'
+        state: present
+        backup: yes
+
+    - name: Garantir que o SSH esteja ativo e reiniciado
+      service:
+        name: ssh
+        state: restarted
+        enabled: yes
+

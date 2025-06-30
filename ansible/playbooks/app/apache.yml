@@ -1,0 +1,20 @@
+---
+- name: Instalar e configurar Apache no app
+  hosts: app
+  become: true
+
+  tasks:
+    - name: Instalar Apache
+      apt:
+        name: apache2
+        state: present
+        update_cache: true
+
+    - name: Copiar index.html personalizado
+      copy:
+        src: files/index.html
+        dest: /var/www/html/index.html
+        owner: root
+        group: root
+        mode: '0644'
+

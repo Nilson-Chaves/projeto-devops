@@ -1,0 +1,44 @@
+---
+- name: Configurar autofs para montagem NFS
+  hosts: db,app,cli
+  become: true
+
+  vars:
+    nfs_server: 192.168.56.31
+    nfs_export: /dados/nfs
+    mount_point: /var/nfs
+
+  tasks:
+
+    - name: Instalar o autofs
+      apt:
+        name: autofs
+        state: present
+        update_cache: yes
+
+    - name: Criar diretório para montagem
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+        mode: '0755'
+
+    - name: Configurar auto.master
+      lineinfile:
+        path: /etc/auto.master
+        regexp: "^{{ mount_point }}"
+        line: "{{ mount_point }} /etc/auto.nfs --timeout=60"
+        create: yes
+        backup: yes
+
+    - name: Configurar /etc/auto.nfs
+      copy:
+        dest: /etc/auto.nfs
+        content: |
+          nfs  -rw,sync {{ nfs_server }}:{{ nfs_export }}
+
+    - name: Reiniciar o autofs
+      service:
+        name: autofs
+        state: restarted
+        enabled: yes
+

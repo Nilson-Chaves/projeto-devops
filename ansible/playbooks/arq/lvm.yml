@@ -1,0 +1,59 @@
+---
+- name: Configurar LVM no servidor arq
+  hosts: arq
+  become: true
+
+  vars:
+    vg_name: dados
+    lv_name: ifpb
+    mount_point: /dados
+    lv_size: 15G
+    disks:
+      - /dev/sdb
+      - /dev/sdc
+      - /dev/sdd
+
+  tasks:
+    - name: Instalar pacotes LVM
+      apt:
+        name: lvm2
+        state: present
+        update_cache: yes
+
+    - name: Criar partições físicas (PV) nos discos (com força)
+      command: "pvcreate -ff -y {{ item }}"
+      loop:
+        - /dev/sdb
+        - /dev/sdc
+        - /dev/sdd
+      ignore_errors: false
+      when: item is not none
+
+    - name: Criar volume group
+      command: vgcreate {{ vg_name }} {{ disks | join(' ') }}
+      args:
+        creates: "/dev/{{ vg_name }}"
+
+    - name: Criar logical volume
+      command: lvcreate -n {{ lv_name }} -L {{ lv_size }} {{ vg_name }}
+      args:
+        creates: "/dev/{{ vg_name }}/{{ lv_name }}"
+
+    - name: Formatar o LV com ext4
+      filesystem:
+        fstype: ext4
+        dev: "/dev/{{ vg_name }}/{{ lv_name }}"
+
+    - name: Criar diretório de montagem
+      file:
+        path: "{{ mount_point }}"
+        state: directory
+
+    - name: Adicionar ao fstab para montagem automática
+      mount:
+        path: "{{ mount_point }}"
+        src: "/dev/{{ vg_name }}/{{ lv_name }}"
+        fstype: ext4
+        opts: defaults
+        state: mounted
+

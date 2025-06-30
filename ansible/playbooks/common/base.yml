@@ -1,0 +1,67 @@
+---
+- name: Configuração base dos servidores
+  hosts: all
+  become: true
+
+  vars:
+    timezone: America/Recife
+    ntp_server: pool.ntp.br
+    usuarios:
+      - nome: nilson
+      - nome: wellington
+    grupo: ifpb
+    senha_padrao: "{{ 'ifpb123' | password_hash('sha512') }}"
+
+  tasks:
+
+    - name: Atualizar pacotes do sistema
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Instalar e configurar timezone
+      timezone:
+        name: "{{ timezone }}"
+
+    - name: Instalar chrony (NTP)
+      apt:
+        name: chrony
+        state: present
+
+    - name: Configurar o servidor NTP
+      lineinfile:
+        path: /etc/chrony/chrony.conf
+        regexp: '^pool '
+        line: "pool {{ ntp_server }} iburst"
+        state: present
+      notify: restart chrony
+
+    - name: Criar grupo "{{ grupo }}"
+      group:
+        name: "{{ grupo }}"
+        state: present
+
+    - name: Criar usuários e adicionar ao grupo "{{ grupo }}"
+      user:
+        name: "{{ item.nome }}"
+        password: "{{ senha_padrao }}"
+        groups: "{{ grupo }}"
+        append: yes
+        shell: /bin/bash
+      loop: "{{ usuarios }}"
+
+    - name: Permitir sudo sem senha para grupo ifpb
+      copy:
+        dest: /etc/sudoers.d/ifpb
+        content: "%ifpb ALL=(ALL) NOPASSWD:ALL\n"
+        owner: root
+        group: root
+        mode: '0440'
+
+  handlers:
+    - name: restart chrony
+      service:
+        name: chrony
+        state: restarted
+
+
