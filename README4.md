@@ -63,8 +63,6 @@ projeto-devops/
 │   │   │   ├── firefox.yml
 │   │   │   └── autofs.yml
 │   │   └── nfs.yml
-├── estrutura.txt
-├── comandos.txt
 └── README.md
 ```
 
