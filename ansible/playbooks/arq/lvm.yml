@@ -1,58 +1,45 @@
 ---
 - name: Configurar LVM no servidor arq
   hosts: arq
-  become: true
-
-  vars:
-    vg_name: dados
-    lv_name: ifpb
-    mount_point: /dados
-    lv_size: 15G
-    disks:
-      - /dev/sdb
-      - /dev/sdc
-      - /dev/sdd
-
+  become: yes
   tasks:
-    - name: Instalar pacotes LVM
-      apt:
-        name: lvm2
-        state: present
-        update_cache: yes
+
+    - name: Verificar se o Volume Group 'dados' já existe
+      command: vgdisplay dados
+      register: vg_check
+      ignore_errors: true
 
     - name: Criar partições físicas (PV) nos discos (com força)
-      command: "pvcreate -ff -y {{ item }}"
+      command: pvcreate -ff -y {{ item }}
       loop:
         - /dev/sdb
         - /dev/sdc
         - /dev/sdd
-      ignore_errors: false
-      when: item is not none
+      when: vg_check.rc != 0
 
-    - name: Criar volume group
-      command: vgcreate {{ vg_name }} {{ disks | join(' ') }}
-      args:
-        creates: "/dev/{{ vg_name }}"
+    - name: Criar Volume Group 'dados'
+      command: vgcreate dados /dev/sdb /dev/sdc /dev/sdd
+      when: vg_check.rc != 0
 
-    - name: Criar logical volume
-      command: lvcreate -n {{ lv_name }} -L {{ lv_size }} {{ vg_name }}
-      args:
-        creates: "/dev/{{ vg_name }}/{{ lv_name }}"
+    - name: Criar Logical Volume 'ifpb' com 15G
+      command: lvcreate -n ifpb -L 15G dados
+      when: vg_check.rc != 0
 
     - name: Formatar o LV com ext4
       filesystem:
         fstype: ext4
-        dev: "/dev/{{ vg_name }}/{{ lv_name }}"
+        dev: /dev/dados/ifpb
+      when: vg_check.rc != 0
 
-    - name: Criar diretório de montagem
+    - name: Criar ponto de montagem /dados
       file:
-        path: "{{ mount_point }}"
+        path: /dados
         state: directory
 
-    - name: Adicionar ao fstab para montagem automática
+    - name: Adicionar entrada no fstab
       mount:
-        path: "{{ mount_point }}"
-        src: "/dev/{{ vg_name }}/{{ lv_name }}"
+        path: /dados
+        src: /dev/dados/ifpb
         fstype: ext4
         opts: defaults
         state: mounted

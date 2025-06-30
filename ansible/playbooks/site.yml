@@ -1,32 +1,19 @@
 ---
-# Playbook mestre para orquestração do projeto DevOps
+# ansible/playbooks/site.yml
 
-- name: Configuração base de todos os hosts
-  import_playbook: common/base.yml
+- import_playbook: common/base.yml
+- import_playbook: common/ntp.yml
+- import_playbook: common/ssh.yml
 
-- name: Configuração NTP para todos os hosts
-  import_playbook: common/ntp.yml
+- import_playbook: arq/lvm.yml
+- import_playbook: arq/nfs-server.yml
 
-- name: Configuração do SSH para todos os hosts
-  import_playbook: common/ssh.yml
+- import_playbook: db/mariadb.yml
+- import_playbook: db/autofs.yml
 
-- name: Configuração do LVM no servidor de arquivos (arq)
-  import_playbook: arq/lvm.yml
+- import_playbook: app/apache.yml
+- import_playbook: app/autofs.yml
 
-- name: Configuração do servidor NFS no arq
-  import_playbook: arq/nfs-server.yml
+- import_playbook: cli/firefox.yml
+- import_playbook: cli/autofs.yml
 
-- name: Configuração do autofs no servidor de banco de dados (db)
-  import_playbook: db/autofs.yml
-
-- name: Instalação e configuração do Apache no servidor de aplicação (app)
-  import_playbook: app/apache.yml
-
-- name: Configuração do autofs no app
-  import_playbook: app/autofs.yml
-
-- name: Instalação do Firefox e X11 no cliente (cli)
-  import_playbook: cli/firefox.yml
-
-- name: Configuração do autofs no cli
-  import_playbook: cli/autofs.yml
