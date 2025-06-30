@@ -1,0 +1,37 @@
+.
+├── ansible
+│   ├── hosts.ini
+│   └── playbooks
+│       ├── app
+│       │   ├── apache.yml
+│       │   ├── autofs.yml
+│       │   └── files
+│       │       └── index.html
+│       ├── arq
+│       │   ├── lvm.yml
+│       │   └── nfs-server.yml
+│       ├── autofs.yml
+│       ├── cli
+│       │   ├── autofs.yml
+│       │   └── firefox.yml
+│       ├── common
+│       │   ├── base.yml
+│       │   ├── ntp.yml
+│       │   └── ssh.yml
+│       ├── db
+│       │   ├── autofs.yml
+│       │   └── mariadb.yml
+│       ├── nfs.yml
+│       └── site.yml
+├── disk1.vdi
+├── disk2.vdi
+├── disk3.vdi
+├── estrutura1.txt
+├── estrutura.txt
+├── playbooks
+├── projeto-devops-final.zip
+├── README4.md
+├── README.md
+└── Vagrantfile
+
+10 directories, 25 files
