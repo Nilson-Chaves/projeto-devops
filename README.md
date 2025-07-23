@@ -1,8 +1,9 @@
 # Projeto DevOps com Vagrant e Ansible
 
-## 🎓 Disciplina
-Administração de Sistemas Abertos  
-**Professor**: Leonidas Lima
+## 🎓 Disciplina: Administração de Sistemas Abertos  
+**Período:** 2025.1  
+**Professor:** Leonidas Lima  
+**Instituição:** IFPB - Campus João Pessoa
 
 ## 👥 Equipe
 - **Nilson Vinícius Aurelio Chaves** - Matrícula: 20221380002  
@@ -20,10 +21,10 @@ Automatizar o provisionamento de uma infraestrutura virtual com 4 máquinas Linu
 
 | Máquina | Função                | Hostname                         | IP                     | Observações                   |
 |--------|------------------------|----------------------------------|------------------------|-------------------------------|
-| `arq`  | Servidor de Arquivos   | `arq.nilson.wellington.devops`  | 192.168.56.31 (fixo)   | DHCP, NFS, LVM                |
-| `db`   | Banco de Dados         | `db.nilson.wellington.devops`   | DHCP                   | MariaDB, autofs               |
-| `app`  | Servidor Web           | `app.nilson.wellington.devops`  | DHCP                   | Apache2, autofs               |
-| `cli`  | Estação Cliente        | `cli.nilson.wellington.devops`  | DHCP                   | Firefox, X11, autofs          |
+| `arq`  | Servidor de Arquivos   | `arq.nilson.wellington.devops`  | 192.168.56.102 (fixo)   | DHCP, NFS, LVM                |
+| `db`   | Banco de Dados         | `db.nilson.wellington.devops`   | DHCP                    | MariaDB, autofs               |
+| `app`  | Servidor Web           | `app.nilson.wellington.devops`  | DHCP                    | Apache2, autofs               |
+| `cli`  | Estação Cliente        | `cli.nilson.wellington.devops`  | DHCP                    | Firefox, X11, autofs          |
 
 ---
 
@@ -35,34 +36,58 @@ Automatizar o provisionamento de uma infraestrutura virtual com 4 máquinas Linu
 
 ---
 
-## 📁 Estrutura do Projeto
+## ⚙️ Automatizações com Ansible
 
-```
-projeto-devops/
-├── Vagrantfile
+### Comum a todas as VMs:
+- Atualização do sistema
+- Timezone: `America/Recife`
+- NTP configurado com `chrony` (pool.ntp.br)
+- Grupo `ifpb` e usuários `nilson` e `wellington`
+- SSH:
+  - Autenticação por chave pública
+  - Root bloqueado
+  - Acesso só para `vagrant` e `ifpb`
+  - Mensagem de acesso
+- Cliente NFS
+- Sudo sem senha para o grupo `ifpb`
+
+### Servidor `arq`:
+- DHCP autoritativo
+- LVM com 3 discos de 10 GB → VG `dados`, LV `ifpb` (15 GB)
+- Montagem automática em `/dados`
+- Servidor NFS exportando `/dados/nfs`
+- Usuário exclusivo `nfs-ifpb` com UID/GID 65534
+
+### Servidor `db`:
+- Instalação do `mariadb-server`
+- Autofs montando `/dados/nfs` do `arq` em `/var/nfs`
+
+### Servidor `app`:
+- Instalação do Apache2
+- Substituição do `index.html` com dados do projeto
+- Autofs montando `/dados/nfs` em `/var/nfs`
+
+### Cliente `cli`:
+- Instalação de `firefox-esr` e `xauth`
+- SSH com `X11Forwarding` habilitado
+- Montagem automática do NFS em `/var/nfs`
+
+---
+
+## 📁 Estrutura de Diretórios
+
+```bash
+projeto_devops/
 ├── ansible/
-│   ├── hosts.ini
-│   ├── site.yml
-│   ├── playbooks/
-│   │   ├── common/
-│   │   │   ├── base.yml
-│   │   │   ├── ntp.yml
-│   │   │   └── ssh.yml
-│   │   ├── arq/
-│   │   │   ├── lvm.yml
-│   │   │   └── nfs-server.yml
-│   │   ├── db/
-│   │   │   ├── mariadb.yml
-│   │   │   └── autofs.yml
-│   │   ├── app/
-│   │   │   ├── apache.yml
-│   │   │   ├── autofs.yml
-│   │   │   └── files/
-│   │   │       └── index.html
-│   │   ├── cli/
-│   │   │   ├── firefox.yml
-│   │   │   └── autofs.yml
-│   │   └── nfs.yml
+│   ├── comum-playbook.yml
+│   ├── arq-playbook.yml
+│   ├── db-playbook.yml
+│   ├── app-playbook.yml
+│   ├── cli-playbook.yml
+│   ├── inventory.ini
+│   └── keys/
+├── .vagrant/           # Discos dinâmicos criados para a VM 'arq'
+├── Vagrantfile         # Define as VMs e provisionamento
 └── README.md
 ```
 
@@ -76,33 +101,10 @@ git clone https://github.com/Nilson-Chaves/projeto-devops.git
 cd projeto-devops
 ```
 
-### 2. Suba as máquinas com o Vagrant
+### 2. Suba as máquinas com o Vagrant junto com os playbooks de todas as máquinas (tudo integrado no mesmo comando)
 ```bash
 vagrant up
 ```
-
-### 3. Acesse a pasta Ansible e execute o playbook principal
-```bash
-cd ansible
-ansible-playbook -i hosts.ini playbooks/site.yml
-```
-
-> Certifique-se que sua chave SSH pública está corretamente configurada, conforme o `ssh.yml`.
-
----
-
-## ✅ Serviços e Configurações Automatizadas
-
-- Atualização e pacotes essenciais
-- Timezone America/Recife
-- NTP (`chrony`)
-- Criação de grupo `ifpb` e usuários `nilson` e `wellington`
-- SSH com autenticação por chave e banner de aviso
-- LVM e montagem automática de `/dados`
-- NFS entre `arq` e demais máquinas
-- MariaDB configurado no `db`
-- Apache2 com `index.html` customizado no `app`
-- Firefox e X11 exportado no `cli`
 
 ---
 
@@ -120,7 +122,4 @@ ansible-playbook -i hosts.ini playbooks/site.yml
 Este projeto é composto por:
 - `Vagrantfile`
 - `playbooks` organizados por máquina
-- `site.yml` integrador
 - `README.md`
-- `estrutura.txt` com a árvore do projeto
-- `comandos.txt` com todos os comandos utilizados
