@@ -1,1 +1,1 @@
-{"name":"bento/debian-12","version":"202502.21.0","provider":"virtualbox","directory":"boxes/bento-VAGRANTSLASH-debian-12/202502.21.0/amd64/virtualbox"}
+{"name":"debian/bookworm64","version":"12.20250126.1","provider":"virtualbox","directory":"boxes/debian-VAGRANTSLASH-bookworm64/12.20250126.1/amd64/virtualbox"}
