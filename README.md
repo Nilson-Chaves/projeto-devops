@@ -77,7 +77,7 @@ Automatizar o provisionamento de uma infraestrutura virtual com 4 máquinas Linu
 ## 📁 Estrutura de Diretórios
 
 ```bash
-projeto_devops/
+projeto-devops/
 ├── ansible/
 │   ├── comum-playbook.yml
 │   ├── arq-playbook.yml
